@@ -1,4 +1,4 @@
-# mint-encrypted-install for Linux Mint 21.3
+# mint-encrypted-install-btrfs-swap for Linux Mint 21.3
 
 This is a partially-automated version of [Naldi Stefano's
 tutorial](https://community.linuxmint.com/tutorial/view/2061), which was
@@ -29,7 +29,7 @@ linked above, and above all, *PLEASE BE CAREFUL*. Typing anything wrong here
 could erase your hard drive! Make sure you test anything in a virtual machine
 before trying it on your real machine.
 
-I also suggest that you do not use it against the drives where the existing OSes are installed (unless, until you practice with teh script and know how to use it before that). Better to practice inside a virtual machine before doing it on a real system.
+I also suggest that you do not use it against the drives where the existing OSes are installed (unless, until you practice with the script and know how to use it before that). It is better to practice inside a virtual machine before doing it on a real system.
 
 [1] You can install multiple Linux systems *inside* the same encrypted
 container (using different logical volumes as **`/`**), and the bootloader will
@@ -45,6 +45,6 @@ Boot the Linux Mint 21.3 live USB as normal. But instead of running the 'Install
     sudo apt-get -y install git
     git clone https://github.com/calliecameron/mint-encrypted-install
     cd mint-encrypted-install
-    ./mint-encrypted-install
+    ./mint-encrypted-install.sh
 
 This will guide you through the rest of the process.
