@@ -24,13 +24,13 @@ ESP partition: **/dev/sda1**
 
 2) OS data devices:
 
-Crypto device: **/dev/mapper/sda3_crypt** # This is the block device that appears in the system when you decrypt the LUKS container 
-Physical encrypted device: **/dev/sda3** # This is where the encrypted data is stored
+Crypto device: **/dev/mapper/sda3_crypt** # This is the block device that appears in the system when you decrypt the LUKS container.
+Physical encrypted device: **/dev/sda3** # This is where the encrypted data is stored.
 
 3) SWAP devices:
 
-Crypto device: **/dev/mapper/sda2_crypt** # This is the block device that appears in the system when you decrypt the LUKS container
-Physical encrypted device: **/dev/sda2** # This is where the encrypted data is stored
+Crypto device: **/dev/mapper/sda2_crypt** # This is the block device that appears in the system when you decrypt the LUKS container.
+Physical encrypted device: **/dev/sda2** # This is where the encrypted data is stored.
 
 ![4](https://raw.githubusercontent.com/yngmjgsd/mint-encrypted-install-btrfs-swap/master/screenshots/screenshot-004.png?raw=true)
 
