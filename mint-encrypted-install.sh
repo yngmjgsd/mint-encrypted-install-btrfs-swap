@@ -228,44 +228,34 @@ EOF
 
 enter-to-continue || fail
 
+# Let's assume that /dev/sda or /dev/nvme0n1p1 is an EFI system partition here
 
-CRYPTDEV="$(read-existing-path "Enter the path of the encrypted system device that you noted earlier; this will be something like /dev/mapper/sda1_crypt or /dev/mapper/nvme0n1p2_crypt, but the number may be different. MAKE SURE this is right, or the next set of instructions will probably make you erase your drive!")"
+CRYPTDEV_OS="$(read-existing-path "Enter the path of the encrypted system device that you noted earlier; this will be something like /dev/mapper/sda2_crypt or /dev/mapper/nvme0n1p2_crypt, but the number may be different. MAKE SURE this is right, or the next set of instructions will probably make you erase your drive!")"
+echo
+CRYPTPART_OS="$(read-existing-path "Enter the path of the physical OS partition the encrypted container was created on; e.g. if the encrypted container is /dev/mapper/sda2_crypt, then this will be /dev/sda2 (i.e. the 'sda2' part matches), or if the encrypted container is /dev/mapper/nvme0n1p2_crypt, then this will be /dev/nvme0n1p2 (i.e. the 'nvme0n1p2' part matches)")"
+echo
+CRYPTDEV_SW="$(read-existing-path "Enter the path of the encrypted swap device that you noted earlier; this will be something like /dev/mapper/sda3_crypt or /dev/mapper/nvme0n1p3_crypt, but the number may be different. MAKE SURE this is right, or the next set of instructions will probably make you erase your drive!")"
+echo
+CRYPTPART_SW="$(read-existing-path "Enter the path of the physical swap partition the encrypted container was created on; e.g. if the encrypted container is /dev/mapper/sda3_crypt, then this will be /dev/sda3 (i.e. the 'sda3' part matches), or if the encrypted container is /dev/mapper/nvme0n1p3_crypt, then this will be /dev/nvme0n1p3 (i.e. the 'nvme0n1p3' part matches)")"
 echo
 
-CRYPTPART="$(read-existing-path "Enter the path of the physical partition the encrypted container was created on; e.g. if the encrypted container is /dev/mapper/sda1_crypt, then this will be /dev/sda1 (i.e. the 'sda1' part matches), or if the encrypted container is /dev/mapper/nvme0n1p2_crypt, then this will be /dev/nvme0n1p2 (i.e. the 'nvme0n1p2' part matches)")"
+UEFIBOOT="$(read-existing-path "Enter the path of the UEFI boot partition that you noted earlier; this will be something like /dev/sda1 or /dev/nvme0n1p1")"
 echo
-
-UEFIBOOT="$(read-existing-path "Enter the path of the UEFI boot partition that you noted earlier; this will be something like /dev/sda1 or /dev/nvme0n1p2")"
-echo
-read -r -p "Enter the number of the UEFI boot partition that you noted earlier, e.g. if the partition is /dev/sda1 on a hard disk, enter 1, or /dev/nvme0n1p2 on an NVME SSD, enter 2: " UEFINUMBER || fail
+read -r -p "Enter the number of the UEFI boot partition that you noted earlier, e.g. if the partition is /dev/sda1 on a hard disk, enter 1, or /dev/nvme0n1p1 on an NVME SSD, enter 1 too: " UEFINUMBER || fail
 if [ -z "${UEFINUMBER}" ]; then
     echo 'Invalid partition number'
     fail
 fi
 
-
-# Differs from tutorial - the tutorial doesn't use LVM inside the container,
-# but we do
 # shellcheck disable=SC2015
 cat <<EOF &&
 
+Linux Mint live installer is going to format the partitions on its own. You don't need to do it beforehand.
 
-Now you need to create logical volumes inside the encrypted container. Open
-another terminal.
+In the installer select the required partitions for /, swap and efi. Make sure to format / as btrfs!
+This script mounts @ subvolume of BTRFS OS volume, if you don't use btrfs then it will fail.
 
-For a new container, you will need to run something like the following (note
-that these are EXAMPLES, and your sizes and names may vary!)
-
-    sudo pvcreate ${CRYPTDEV}
-    sudo vgcreate mint ${CRYPTDEV}
-
-    sudo lvcreate -L 4G -n swap mint
-    sudo lvcreate -l 100%FREE -n root mint
-
-If you are using an existing container, you will know which logical volumes
-you need; now is the time to set them up.
-
-Once you have done that, come back to this terminal and press ENTER to
+If this is clear, come back to this terminal and press ENTER to
 continue.
 EOF
 
@@ -276,24 +266,23 @@ enter-to-continue &&
 cat <<EOF &&
 Switch back into the installer. Select 'Something else' and click 'Continue'.
 You may need to do 'Back' and 'Something else', 'Continue' several times before
-your logical volumes show up.
+your volumes show up.
 
-Set up your partitions. Using the example names from the previous step, you
+Set up your partitions. Using the example names from the previous steps, you
 will want to use:
 
-/dev/mapper/mint-root as an Ext4 journalling file system, formatted, and
+/dev/mapper/<partition_used_for_system>_crypt as BTRFS journalling file system, formatted, and
 mounted at /
 
-/dev/mapper/mint-swap as swap area
+/dev/mapper/<partition_used_for_swap>_crypt as swap area
 
 (If there is a box at the bottom asking where to install the bootloader,
-something has gone wrong!)
+something has gone wrong! The installation will probably fail)
 
 Click 'Install now', and continue with the rest of the installer.
 
 When the installer finishes, click 'Continue testing', come back to this
 terminal, and press ENTER to continue.
-
 
 Waiting for installer to finish...
 EOF
@@ -304,9 +293,9 @@ enter-to-continue || fail
 
 # Tutorial step 3
 # shellcheck disable=SC2015
-ROOTDEV="$(read-existing-path "Enter the path of the device where you installed the root partition; using the example names this would be /dev/mapper/mint-root, but yours might be different. MAKE SURE this is right, or it will break your new installation!")" &&
+ROOTDEV="${CRYPTDEV_OS}" &&
 
-sudo mount "${ROOTDEV}" /mnt &&
+sudo mount -o subvol=@ "${ROOTDEV}" /mnt &&
 sudo mount --bind /dev /mnt/dev &&
 sudo mount --bind /dev/pts /mnt/dev/pts &&
 sudo mount --bind /sys /mnt/sys &&
@@ -328,7 +317,8 @@ if [ -f "${HOME}/${KEYFILE}" ]; then
 else
     # shellcheck disable=SC2015
     sudo dd bs=512 count=4 if=/dev/urandom of="/mnt/${KEYFILE}" &&
-    sudo cryptsetup luksAddKey "${CRYPTPART}" "/mnt/${KEYFILE}" || fail
+    sudo cryptsetup luksAddKey "${CRYPTPART_OS}" "/mnt/${KEYFILE}" &&
+    sudo cryptsetup luksAddKey "${CRYPTPART_SW}" "/mnt/${KEYFILE}" || fail
 fi
 
 # shellcheck disable=SC2015
@@ -339,9 +329,11 @@ echo "KEYFILE_PATTERN=\"/${KEYFILE}\"" | sudo tee -a /mnt/etc/cryptsetup-initram
 echo "UMASK=0077" | sudo tee -a /mnt/etc/initramfs-tools/initramfs.conf || fail
 
 if [ -n "${USE_TRIM}" ]; then
-    echo "$(basename "${CRYPTDEV}") UUID=$(sudo blkid -s UUID -o value "${CRYPTPART}") /${KEYFILE} luks,discard" | sudo tee /mnt/etc/crypttab &>/dev/null || fail
+    echo "$(basename "${CRYPTDEV_OS}") UUID=$(sudo blkid -s UUID -o value "${CRYPTPART_OS}") /${KEYFILE} luks,discard" | sudo tee -a /mnt/etc/crypttab &>/dev/null &&
+    echo "$(basename "${CRYPTDEV_SW}") UUID=$(sudo blkid -s UUID -o value "${CRYPTPART_SW}") /${KEYFILE} luks,discard" | sudo tee -a /mnt/etc/crypttab &>/dev/null || fail
 else
-    echo "$(basename "${CRYPTDEV}") UUID=$(sudo blkid -s UUID -o value "${CRYPTPART}") /${KEYFILE} luks" | sudo tee /mnt/etc/crypttab &>/dev/null || fail
+    echo "$(basename "${CRYPTDEV_OS}") UUID=$(sudo blkid -s UUID -o value "${CRYPTPART_OS}") /${KEYFILE} luks" | sudo tee -a /mnt/etc/crypttab &>/dev/null && 
+    echo "$(basename "${CRYPTDEV_SW}") UUID=$(sudo blkid -s UUID -o value "${CRYPTPART_SW}") /${KEYFILE} luks" | sudo tee -a /mnt/etc/crypttab &>/dev/null || fail
 fi
 
 # shellcheck disable=SC2015
@@ -352,9 +344,9 @@ sudo sed -i.bak 's/GRUB_TIMEOUT_STYLE=hidden/GRUB_TIMEOUT_STYLE=menu/' /mnt/etc/
 sudo sed -i.bak 's/GRUB_TIMEOUT=0/GRUB_TIMEOUT=5/' /mnt/etc/default/grub || fail
 
 if [ -n "${USE_TRIM}" ]; then
-     sudo sed -i "s|GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash\"|GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash cryptdevice=${CRYPTPART}:$(basename "${CRYPTDEV}"):allow-discards\"|" /mnt/etc/default/grub || fail
+     sudo sed -i "s|GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash\"|GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash cryptdevice=${CRYPTPART_OS}:$(basename "${CRYPTDEV_OS}"):allow-discards\"|" /mnt/etc/default/grub || fail
 else
-     sudo sed -i "s|GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash\"|GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash cryptdevice=${CRYPTPART}:$(basename "${CRYPTDEV}")\"|" /mnt/etc/default/grub || fail
+     sudo sed -i "s|GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash\"|GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash cryptdevice=${CRYPTPART_OS}:$(basename "${CRYPTDEV_OS}")\"|" /mnt/etc/default/grub || fail
 fi
 
 # shellcheck disable=SC2015
