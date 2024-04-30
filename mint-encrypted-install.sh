@@ -46,21 +46,21 @@ function fail() {
 
 
 cat <<EOF &&
-This script will guide you through the installation of Linux Mint 21.1,
-fully encrypted (including /boot) using LVM inside LUKS. This works for both
+This script will guide you through the installation of Linux Mint 21.3 (codename: Virginia),
+fully encrypted (including /boot) using BTRFS inside LUKS. This works for both
 single- and dual-boot setups. UEFI is required; it doesn't support BIOS. You
 can use this either to set up encryption from scratch, or to install/reinstall
 another Linux inside an encrypted container that you set up in a previous run
 of the script.
 
-You *MUST* be running this on the Mint live USB, before installing. Bad things
+You *MUST* be running this on the Linux Mint 21.3 live USB, before installing. Bad things
 could happen if you run this on an installed Linux system.
 
 Based on a tutorial by Naldi Stefano:
 https://community.linuxmint.com/tutorial/view/2061
 
 This is an advanced configuration that assumes you are comfortable with the
-terminal, shell scripts, partitioning, LVM, LUKS, and installing and managing
+terminal, shell scripts, partitioning, LUKS, and installing and managing
 normal non-encrypted Linux systems. If not, read the tutorial above and make
 sure you know what you are doing before continuing!
 
@@ -73,11 +73,11 @@ enter-to-continue &&
 
 
 # Not completely foolproof, but should do the job...
-if ! lsb_release -a 2>/dev/null | grep 'vera' &>/dev/null || ! type ubiquity &>/dev/null; then
+if ! lsb_release -a 2>/dev/null | grep 'virginia' &>/dev/null || ! type ubiquity &>/dev/null; then
     cat <<EOF
 
 
-You are not running on the Linux Mint 21.1 installer live
+You are not running on the Linux Mint 21.3 installer live
 USB. Cannot go any further.
 EOF
     exit 1
@@ -166,14 +166,21 @@ Make sure an EFI system partition exists.
 Take a note of the name of this partition (e.g. something like /dev/sda1 for
 hard disks, or /dev/nvme0n1p1 for NVME SSDs), you will need it later.
 
-Create a new partition with the desired properties for the encrypted container
-(type should be 'Linux filesystem'), and set up encryption:
+Create new partitions with the desired properties for the encrypted container
+(type should be 'Linux filesystem'), and set up encryption (encrypted using LUKS1, 
+couldn't make it work with LUKS2 probably due to GRUB version). These partitions will be used for
+the system (/) and swap:
 
-    sudo cryptsetup luksFormat --type luks1 /dev/<partition>
-    sudo cryptsetup open /dev/<partition> <partition>_crypt
+    sudo cryptsetup luksFormat --type luks1 /dev/<partition_used_for_system>
+    sudo cryptsetup open /dev/<partition> <partition_used_for_system>_crypt
+    sudo cryptsetup luksFormat --type luks1 /dev/<partition_used_for_swap>
+    sudo cryptsetup open /dev/<partition> <partition_used_for_swap>_crypt
 
-This will open the encrypted container on /dev/mapper/<partition>_crypt. Keep a
-note of this - you will need it later.
+This will open the encrypted containers on /dev/mapper/<partition_used_for_system>_crypt and /dev/mapper/<partition_used_for_swap>_crypt. Keep a
+note of this - you will need it later. You can also list all the partitions, their types and UUIDs
+with the following command:
+
+    sudo blkid
 
 Click 'Back' to return to the 'Installation Type' page.
 
@@ -190,7 +197,7 @@ Click 'Back' in the installer to return to the 'Installation Type' page.
 
 Leave the installer open and open a new terminal.
 
-Open the encrypted volume with:
+Open the encrypted volume(s) with:
 
     sudo cryptsetup open /dev/<partition> <partition>_crypt
 
@@ -222,13 +229,13 @@ EOF
 enter-to-continue || fail
 
 
-CRYPTDEV="$(read-existing-path "Enter the name of the encrypted partition that you noted earlier; this will be something like /dev/mapper/sda1_crypt or /dev/mapper/nvme0n1p2_crypt, but the number may be different. MAKE SURE this is right, or the next set of instructions will probably make you erase your drive!")"
+CRYPTDEV="$(read-existing-path "Enter the path of the encrypted system device that you noted earlier; this will be something like /dev/mapper/sda1_crypt or /dev/mapper/nvme0n1p2_crypt, but the number may be different. MAKE SURE this is right, or the next set of instructions will probably make you erase your drive!")"
 echo
 
-CRYPTPART="$(read-existing-path "Enter the name of the physical partition the encrypted container was created on; e.g. if the encrypted container is /dev/mapper/sda1_crypt, then this will be /dev/sda1 (i.e. the 'sda1' part matches), or if the encrypted container is /dev/mapper/nvme0n1p2_crypt, then this will be /dev/nvme0n1p2 (i.e. the 'nvme0n1p2' part matches)")"
+CRYPTPART="$(read-existing-path "Enter the path of the physical partition the encrypted container was created on; e.g. if the encrypted container is /dev/mapper/sda1_crypt, then this will be /dev/sda1 (i.e. the 'sda1' part matches), or if the encrypted container is /dev/mapper/nvme0n1p2_crypt, then this will be /dev/nvme0n1p2 (i.e. the 'nvme0n1p2' part matches)")"
 echo
 
-UEFIBOOT="$(read-existing-path "Enter the name of the UEFI boot partition that you noted earlier; this will be something like /dev/sda1 or /dev/nvme0n1p2")"
+UEFIBOOT="$(read-existing-path "Enter the path of the UEFI boot partition that you noted earlier; this will be something like /dev/sda1 or /dev/nvme0n1p2")"
 echo
 read -r -p "Enter the number of the UEFI boot partition that you noted earlier, e.g. if the partition is /dev/sda1 on a hard disk, enter 1, or /dev/nvme0n1p2 on an NVME SSD, enter 2: " UEFINUMBER || fail
 if [ -z "${UEFINUMBER}" ]; then
