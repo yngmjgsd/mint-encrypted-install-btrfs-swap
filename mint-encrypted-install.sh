@@ -214,6 +214,12 @@ Otherwise, a new keyfile will be created.
 
 -------------------------------------------------------------------------------
 
+Next, create filesystems on top of OS decrypted device and SWAP decrypted device. The ubiquty thinks that these are separate drives, 
+so it will ask you to partition them (don't need that cause you do not use LVM). If you create the filesystem in advance then you will be able 
+to format them again on one of the installer steps.
+
+    sudo mkfs.btrfs /dev/mapper/<partition_used_for_system>_crypt
+    sudo mkswap /dev/mapper/<partition_used_for_swap>_crypt
 
 Press ENTER and the installer will open, and do as instructed above.
 EOF
@@ -250,10 +256,8 @@ fi
 # shellcheck disable=SC2015
 cat <<EOF &&
 
-Linux Mint live installer is going to format the partitions on its own. You don't need to do it beforehand.
-
 In the installer select the required partitions for /, swap and efi. Make sure to format / as btrfs!
-This script mounts @ subvolume of BTRFS OS volume, if you don't use btrfs then it will fail.
+This script mounts @ subvolume of BTRFS OS volume, if you don't format btrfs here then it will fail.
 
 If this is clear, come back to this terminal and press ENTER to
 continue.
@@ -277,7 +281,8 @@ mounted at /
 /dev/mapper/<partition_used_for_swap>_crypt as swap area
 
 (If there is a box at the bottom asking where to install the bootloader,
-something has gone wrong! The installation will probably fail)
+something has gone wrong! The installation will probably fail). Keep in mind that the script must be used to run the installer. The script 
+changes a few configuration files before the installer runs to disable bootloader installation.
 
 Click 'Install now', and continue with the rest of the installer.
 
@@ -360,15 +365,16 @@ cat <<EOF &&
 
 Congratulations! The installation is now finished.
 
-You should now be able to reboot, and should be prompted for the password to
+You should now be able to reboot and should be prompted for the password to
 unlock the encrypted partition at boot.
 
 For extra tips, see the appendices of the tutorial at:
 https://community.linuxmint.com/tutorial/view/2061
 
-For other scripts you can use to update the bootloader, or to fix things if you
-lose the ability to boot the system, see this script's repository at:
+For other scripts you can use to update the bootloader or to fix things if you
+lose the ability to boot the system, see this script's original repository at:
 https://github.com/calliecameron/mint-encrypted-install
 EOF
 
 enter-to-continue || fail
+
