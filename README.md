@@ -17,8 +17,7 @@ and
 The **Linux Mint 21.3 installer (codename: Virginia)** has an option for installing on LVM inside
 an encrypted LUKS container, but this is only offered if you want to erase
 the whole disk (no dual boot), and also leaves the **`/boot`** partition
-unencrypted. If you want to encrypt everything including **`/boot`**, or want to
-install any sort of encrypted system alongside another OS for dual boot [1],
+unencrypted. If you want to encrypt everything including **`/boot`** 
 you have to configure the bootloader and initramfs manually -- which is
 time-consuming and easy to get wrong. This script guides you through the
 process, and automates as many of the commands as possible, making it much
@@ -32,13 +31,6 @@ could erase your hard drive! Make sure you test anything in a virtual machine
 before trying it on your real machine.
 
 I also suggest that you do not use it against the drives where the existing OSes are installed (unless, until you practice with the script and know how to use it before that). It is better to practice inside a virtual machine before doing it on a real system.
-
-[1] You can install multiple Linux systems *inside* the same encrypted
-container (using different logical volumes as **`/`**), and the bootloader will
-pick those up just fine. But if you want to dual-boot alongside something
-else (e.g. Windows), that has to use an unencrypted partition outside the
-container.
-
 
 ## Usage
 
