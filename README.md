@@ -1,14 +1,16 @@
 # mint-encrypted-install-btrfs-swap for Linux Mint 21.3
 
+...(Read `EXAMPLE.md` for the system installation example)...
+
 This is a partially-automated version of [Naldi Stefano's
 tutorial](https://community.linuxmint.com/tutorial/view/2061), which was
 partly based on blog posts by Pavel Kogan
 [here](http://www.pavelkogan.com/2014/05/23/luks-full-disk-encryption/)
 and
-[here](http://www.pavelkogan.com/2015/01/25/linux-mint-encryption/). Also, the original script that is avilable [here](https://github.com/calliecameron/mint-encrypted-install). All credit goes to them for figuring out how to do it. I edited and tested it with BTRFS+SWAP setup (no LVM here, unneded when you use BTRFS). There are benefits of this setup such as:
+[here](http://www.pavelkogan.com/2015/01/25/linux-mint-encryption/). Also, the original script that is avilable [here](https://github.com/calliecameron/mint-encrypted-install). All credit goes to them for figuring out how to do it. I edited and tested it with the BTRFS+SWAP setup (no LVM here, unneeded when you use BTRFS). There are benefits of this setup such as:
 
 - BTRFS snapshots
-- Timeshift can be used to make snapshots instead of RSYNC
+- **Timeshift** can be used to make snapshots instead of RSYNC
 - [timeshift-autosnap-apt](https://github.com/wmutschl/timeshift-autosnap-apt) script can be used to take BTRFS snapshots of your system right before removing/upgrading packages
 - [grub-btrfs](https://github.com/Antynea/grub-btrfs) script can be used to make GRUB boot your system from the snapshots
 
